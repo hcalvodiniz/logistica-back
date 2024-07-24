@@ -143,4 +143,23 @@ class Truck extends CI_Controller {
 			show_error('Not allowed '.$_SERVER['REQUEST_METHOD'].' method', 400);
 		}
 	}
+
+	public function list() {
+		$trucks = $this->truck_model->get("id, concat(brand, ' ', model, ' - ', year) as name");
+		$trucks = $this->pluck($trucks, 'name', 'id');
+		$this->output
+			->set_header("Access-Control-Allow-Origin: *")
+			->set_header("Access-Control-Allow-Headers: *")
+			->set_content_type("application/json")
+			->set_output(json_encode($trucks));
+	}
+
+	public function get_mileage($id) {
+		$truck = $this->truck_model->where(compact('id'));
+		$this->output
+			->set_header("Access-Control-Allow-Origin: *")
+			->set_header("Access-Control-Allow-Headers: *")
+			->set_content_type("application/json")
+			->set_output(json_encode(["mileage" => number_format($truck[0]['mileage'], 0, '', ',')]));
+	}
 }

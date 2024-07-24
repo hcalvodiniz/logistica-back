@@ -132,6 +132,16 @@ class Driver extends CI_Controller {
 		}
 	}
 
+	public function list() {
+		$drivers = $this->driver_model->all();
+		$drivers = $this->pluck($drivers, 'name', 'id');
+		$this->output
+			->set_header("Access-Control-Allow-Origin: *")
+			->set_header("Access-Control-Allow-Headers: *")
+			->set_content_type("application/json")
+			->set_output(json_encode($drivers));
+	}
+
 	public function valid_date($date) {
 		$this->load->library('form_validation');
 		if(empty($date)) {

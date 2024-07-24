@@ -101,4 +101,21 @@ class CI_Controller {
 		return self::$instance;
 	}
 
+	protected function pluck($array, $value, $key) {
+		$composeArray = [];
+		foreach ($array as $v) {
+			if (gettype($v) === 'object') {
+				$composeArray[] = [
+					$v->$key => $v->$value
+				];
+			} else {
+				$composeArray[] = [
+					$v[$key] => $v[$value]
+				];
+			}
+		}
+
+		return $composeArray;
+	}
+
 }
