@@ -118,6 +118,10 @@ class CI_Model {
 		return $result->result_array();
 	}
 
+	public function insert_batch($array) {
+		return $this->db->insert_batch($this->table, $array);
+	}
+
 	protected function Collection($result) {
 		$collection = [];
 		foreach ($result->result_array() as $row) {

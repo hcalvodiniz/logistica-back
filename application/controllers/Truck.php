@@ -6,6 +6,7 @@ class Truck extends CI_Controller {
 	function __construct() {
 		parent::__construct();
 		$this->load->model('truck_model');
+		$this->load->model('photo_model', 'photo');
 	}
 
 	/**
@@ -79,13 +80,12 @@ class Truck extends CI_Controller {
 	 */
 	public function update() {
 		$this->load->library('form_validation');
-		$_POST = json_decode(file_get_contents("php://input"), true);
 		$this->form_validation->set_rules($this->truck_model->updateRules);
 
 		if ($this->form_validation->run() == FALSE) {
 			$response = [
-				'errors' => $this->form_validation->error_array(),
-				'success' => FALSE
+				'msg' => validation_errors(),
+				'success' => FALSE,
 			];
 			$this->output
 				->set_header("Access-Control-Allow-Origin: *")
@@ -108,6 +108,21 @@ class Truck extends CI_Controller {
 				$id = $data['id'];
 				unset($data['id']);
 
+				if (!empty($_FILES['files']['name'][0])) {
+					$file_paths = $this->doUpload($id, $_FILES['files']);
+
+					$array_batch = [];
+
+					foreach ($file_paths as $v) {
+						$array_batch[] = [
+							'filename' => $v,
+							'truck_id' => $id
+						];
+					}
+
+					$this->photo->insert_batch($array_batch);
+				}
+
 				$model = $this->truck_model->update($data, $id);
 				$this->output
 					->set_header("Access-Control-Allow-Origin: *")
@@ -115,11 +130,28 @@ class Truck extends CI_Controller {
 					->set_content_type('application/json')
 					->set_output(json_encode([
 						'success' => TRUE,
-						'data' => $model,
+						'data' => $data,
 						'msg' => 'Se ha actualizado correctamente la camioneta'
 					]));
 			}
 		}
+	}
+
+	public function get_photos($id) {
+		$result = $this->photo->where(['truck_id' => $id]);
+
+		$response = [
+			"success" => count($result) > 0,
+			"msg" => (count($result) > 0) ? 'Fotos obtenidas!' : 'No hay fotos cargadas!',
+			"data" => $result,
+			"path" => 'uploads/trucks'
+		];
+		
+		$this->output
+			->set_header("Access-Control-Allow-Origin: *")
+			->set_header("Access-Control-Allow-Headers: *")
+			->set_content_type("application/json")
+			->set_output(json_encode($response));
 	}
 
 	/**
@@ -142,6 +174,35 @@ class Truck extends CI_Controller {
 		} else {
 			show_error('Not allowed '.$_SERVER['REQUEST_METHOD'].' method', 400);
 		}
+	}
+
+	protected function doUpload($title, $files) {
+		$config = [
+			'upload_path' => './uploads/trucks/',
+			'allowed_types' => 'jpeg|png',
+			'overwrite' => 1,
+			'max_size' => 5120
+		];
+		$this->load->library('upload', $config);
+
+		foreach ($files['name'] as $key => $image) {
+			$_FILES['images']['name'] = $files['name'][$key];
+			$_FILES['images']['type'] = $files['type'][$key];
+			$_FILES['images']['tmp_name'] = $files['tmp_name'][$key];
+			$_FILES['images']['error'] = $files['error'][$key];
+			$_FILES['images']['size'] = $files['size'][$key];
+
+			$config['file_name'] = $title.'_'.$image;
+
+			$this->upload->initialize($config);
+
+			if ($this->upload->do_upload('images')) {
+				$names[] = $this->upload->data('file_name');
+			} else {
+				return FALSE;
+			}
+		}
+		return $names;
 	}
 
 	public function list() {
